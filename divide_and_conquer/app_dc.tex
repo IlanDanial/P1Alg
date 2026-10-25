@@ -1,0 +1,67 @@
+% Appendices for the divide-and-conquer half. Needs \usepackage{listings}.
+
+\section{Divide-and-Conquer Code}
+\label{app:dc-code}
+
+The algorithm (\texttt{quadtree.py}) and the measurements behind
+Figs.~\ref{fig:dc-scaling}--\ref{fig:dc-depth} and Table~\ref{tab:dc-requests}
+(\texttt{experiments.py}). The plotting script, the unit tests, the Rinc\'on
+data file and the raw measurements are in the project
+repository.\footnote{\url{https://github.com/IlanDanial/P1Alg}}
+
+\lstinputlisting[language=Python,caption={quadtree.py}]{\dcdir quadtree.py}
+\lstinputlisting[language=Python,caption={experiments.py}]{\dcdir experiments.py}
+
+\section{LLM Usage: Divide-and-Conquer Part}
+\label{app:dc-llm}
+
+\textbf{Tool.} Claude Code (Anthropic's command-line coding agent), model
+Claude Opus~5.5 (\texttt{claude-opus-5-5}), October 2026. The agent read the
+assignment, read the scraper repository~\cite{danial2023airbnb}, searched the web
+for the IEEE template, wrote and ran the code, and drafted this section. All
+proofs, numbers, and citations were checked by the authors.
+
+\textbf{Prompts (verbatim).}
+\begin{enumerate}
+\item ``DO you understand the project I need to do also this is a group project
+  I am doing the divide an conquer part''
+\item ``My Idea for the problem is a problem I have solved before with divide
+  and conquer \url{https://github.com/IlanDanial/airbnb_data} I split the map over and
+  over, each time checking the amount of properties in the split and if it was
+  under I took those properties and added it to the list since you can only see
+  so many properties at a time''
+\item ``yes start the implementation, we're using IEEE search online for proper
+  template''
+\item ``yes write the LaTeX section''
+\item ``This is really ugly'' followed by ``My bigger issue is that the
+  explanations are very longwinded for no reason and the formatting of the
+  page is ugly its hard to read as well''
+\item ``I have an issue with some of this read the paper be critical how do
+  you think of the formatting'', then ``fix all of them at once'' and ``also
+  do we need the full code in the appendix or can we reference a repository''
+\item ``would it be worth it to look at the code and refactor it and the
+  comments in the code'', then ``go''
+\end{enumerate}
+
+\textbf{Results.}
+% TODO: paste the full exported transcript (Claude Code: /export) here or in
+% supplementary material; the assignment requires all intermediate results.
+(1)~A summary of the assignment and four candidate divide-and-conquer problems.
+(2)~An analysis of the scraper's \texttt{subdivide} recursion as an adaptive
+quadtree, identifying the termination issue for co-located listings and the
+double-counting issue on window borders.
+(3)~\texttt{quadtree.py}, \texttt{test\_quadtree.py}, \texttt{experiments.py},
+and the figures; an intermediate run stopped when the minimum-width guard was
+reached, after which the crowding experiment was limited to
+$\delta\ge2^{-28}$, and garbage collection was disabled during timing.
+(4)~A first draft of Section~\ref{sec:dc} and these appendices, with five
+separate figures in matplotlib's default style.
+(5)~The draft was shortened by about a third, the five figures were
+restyled to match the paper's typeface and merged into three, and the page
+layout was fixed.
+(6)~A list of nine formatting defects (an equation label pushed to its own
+line, a wrapped pseudocode line, mixed paragraph styles, inconsistent
+equation citations, a legend mismatch), all then fixed; the unit tests were
+removed from this appendix in favor of the repository link.
+(7)~The plotting code was split out of \texttt{experiments.py} into
+\texttt{plots.py}, and docstrings and comments were added.

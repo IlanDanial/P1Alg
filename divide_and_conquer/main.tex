@@ -1,0 +1,69 @@
+% Standalone build of the divide-and-conquer part, using the preamble of the
+% official IEEE conference template (IEEEtran). To merge into the group paper:
+% upload this folder as dc/, copy the extra preamble lines below, set
+% \newcommand{\dcdir}{dc/}, and \input{dc/sec_dc} and \input{dc/app_dc}.
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+% --- added for the divide-and-conquer part ---
+\usepackage{url}
+\usepackage{listings}
+\lstset{basicstyle=\ttfamily\scriptsize, breaklines=true, columns=fullflexible,
+  frame=single, keepspaces=true, showstringspaces=false}
+\newtheorem{lemma}{Lemma}
+\newtheorem{theorem}{Theorem}
+\newcommand{\dcdir}{}
+% ---------------------------------------------
+
+\begin{document}
+
+\title{Greedy and Divide-and-Conquer Algorithms for Real-World Problems}
+
+\author{\IEEEauthorblockN{Ilan Danial}
+\IEEEauthorblockA{\textit{TODO: department, university} \\
+TODO: city, country \\
+TODO: email}
+\and
+\IEEEauthorblockN{TODO: partner}
+\IEEEauthorblockA{\textit{TODO: department, university} \\
+TODO: city, country \\
+TODO: email}
+}
+
+\maketitle
+
+\begin{abstract}
+TODO: joint abstract. Divide-and-conquer part: map-search sites cap the number
+of listings shown per window; an adaptive quadtree recursion enumerates every
+listing with $\Theta(n/k)$ requests and $\Theta(n\log(n/k))$ work for evenly
+spread listings, verified experimentally and on real Airbnb data.
+\end{abstract}
+
+\begin{IEEEkeywords}
+divide and conquer, quadtree, web scraping, greedy algorithms
+\end{IEEEkeywords}
+
+\section{Introduction}
+TODO: joint introduction.
+
+% TODO: greedy section (partner)
+
+\input{sec_dc}
+
+\section{Conclusion}
+TODO: joint conclusion.
+
+\bibliographystyle{IEEEtran}
+\bibliography{refs}
+
+% Code reads better at full page width.
+\onecolumn
+\appendices
+\input{app_dc}
+
+\end{document}
