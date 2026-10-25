@@ -12,6 +12,7 @@ overflows the cap `k` into four quadrants and recursing.
 | `plots.py` | Draws `figures/*.pdf|png` from `results/` and the Rincón data |
 | `sec_dc.tex`, `app_dc.tex`, `refs.bib` | Report section, appendices (code + LLM log), and citations |
 | `main.tex` | Standalone IEEE conference build; header comment explains merging into the group paper |
+| `proof/` | Lean 4 formalization of Lemmas 1–2 (on the integer grid) and Theorem 1 (`lake build` checks it; needs [elan](https://github.com/leanprover/elan)) |
 | `data/rincon_listings.csv` | 261 real listing coordinates (Rincón, PR, scraped 2023-03-29) from [IlanDanial/airbnb_data](https://github.com/IlanDanial/airbnb_data) |
 
 ```

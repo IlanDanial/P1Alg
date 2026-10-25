@@ -130,6 +130,20 @@ The condition $m\le k$ is also necessary: if more than $k$ listings share a
 location, every window containing it overflows, so no strategy using $Q_k$
 can reveal them.
 
+Lemmas~\ref{lem:partition}--\ref{lem:height} and Theorem~\ref{thm:correct}
+are also machine-checked in Lean~4~\cite{lean4} (Appendix~\ref{app:dc-lean}).
+Reported coordinates have finite precision (Airbnb gives five decimals), so
+the formalization works on an integer grid, where $\delta$ is one grid unit.
+There Lemma~\ref{lem:height} reads: if $m\le k$, recursion depth
+$\lceil\log_2 W\rceil$ suffices for a window of side $W$; combined with
+Theorem~\ref{thm:correct} this gives total correctness. The real-valued form
+of Lemma~\ref{lem:height} is proved only on paper. The nearest existing
+formalizations, region quadtrees in Isabelle~\cite{nipkow2024quad,nipkow2024afp}
+and $k$-d trees in Isabelle and Coq~\cite{rau2019kdtree,hamid2023kdtree},
+obtain termination from a fixed grid exponent or from the point count
+shrinking at each median split; neither covers a space-splitting tree over
+arbitrary points, so the proof here was written from scratch.
+
 \subsection{Running Time}
 \label{sec:dc-analysis}
 

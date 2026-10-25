@@ -14,7 +14,13 @@
 \usepackage{url}
 \usepackage{listings}
 \lstset{basicstyle=\ttfamily\scriptsize, breaklines=true, columns=fullflexible,
-  frame=single, keepspaces=true, showstringspaces=false}
+  frame=single, keepspaces=true, showstringspaces=false,
+  % Unicode symbols in the Lean listing, mapped to math symbols.
+  literate={≤}{{$\le$}}1 {≠}{{$\ne$}}1 {∧}{{$\wedge$}}1 {∨}{{$\vee$}}1
+           {¬}{{$\neg$}}1 {↔}{{$\leftrightarrow$}}1 {→}{{$\rightarrow$}}1
+           {∀}{{$\forall$}}1 {∃}{{$\exists$}}1 {⟨}{{$\langle$}}1 {⟩}{{$\rangle$}}1
+           {×}{{$\times$}}1 {α}{{$\alpha$}}1 {∈}{{$\in$}}1 {·}{{$\cdot$}}1
+           {₂}{{$_2$}}1 {⊢}{{$\vdash$}}1 {⌈}{{$\lceil$}}1 {⌉}{{$\rceil$}}1}
 \newtheorem{lemma}{Lemma}
 \newtheorem{theorem}{Theorem}
 \newcommand{\dcdir}{}

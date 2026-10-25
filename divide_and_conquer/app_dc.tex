@@ -12,6 +12,20 @@ repository.\footnote{\url{https://github.com/IlanDanial/P1Alg}}
 \lstinputlisting[language=Python,caption={quadtree.py}]{\dcdir quadtree.py}
 \lstinputlisting[language=Python,caption={experiments.py}]{\dcdir experiments.py}
 
+\section{Machine-Checked Proof}
+\label{app:dc-lean}
+
+Lemma~\ref{lem:partition} (\texttt{quadrants\_cover},
+\texttt{quadrants\_disjoint}), Theorem~\ref{thm:correct}
+(\texttt{collect\_correct}), Lemma~\ref{lem:height} on the integer grid
+(\texttt{collect\_terminates}) and their combination into total correctness
+(\texttt{collect\_total}) in Lean~4.35, using only the core library.
+\texttt{lake build} in \texttt{divide\_and\_conquer/proof} checks it; the
+theorems depend on no axioms beyond Lean's standard three
+(\texttt{propext}, \texttt{Classical.choice}, \texttt{Quot.sound}).
+
+\lstinputlisting[language={},caption={proof/Proof/Collect.lean}]{\dcdir proof/Proof/Collect.lean}
+
 \section{LLM Usage: Divide-and-Conquer Part}
 \label{app:dc-llm}
 
@@ -41,6 +55,16 @@ proofs, numbers, and citations were checked by the authors.
   do we need the full code in the appendix or can we reference a repository''
 \item ``would it be worth it to look at the code and refactor it and the
   comments in the code'', then ``go''
+\item ``Isnt there a code languge that is built to prove proofs can we use
+  that to prove correctness'', then ``I want to go for it also I am sure there
+  are online proofs of this exact same thing in the same language so it should
+  take less than an hour''
+\item ``so your telling me that there was no problem with proving the whole
+  thing end to end''
+\item ``actually search online for the hard part dont just tell me it does
+  not exist''
+\item ``do both, go for the full proof, or is there a solution we can do that
+  would be easier to prove and solve the problem all the same''
 \end{enumerate}
 
 \textbf{Results.}
@@ -65,3 +89,20 @@ equation citations, a legend mismatch), all then fixed; the unit tests were
 removed from this appendix in favor of the repository link.
 (7)~The plotting code was split out of \texttt{experiments.py} into
 \texttt{plots.py}, and docstrings and comments were added.
+(8)~An assessment of proof assistants (Lean~4, Coq, Isabelle, Dafny) and of
+which parts of the proof are feasible to formalize; then a first Lean
+formalization of Lemma~\ref{lem:partition} and Theorem~\ref{thm:correct}
+only, with \textsc{Collect} given a fuel bound, which compiled on the first
+build.
+(9)~A clarification that this was partial correctness, not an end-to-end
+proof, with three further gaps listed (integer midpoints, the oracle not being
+a black box, no duplicate-freeness proof).
+(10)~A web search that found the Isabelle and Coq formalizations cited in
+Section~\ref{sec:dc-correctness}, none covering separation-based termination;
+the assistant's earlier claim that no related formalization existed was
+withdrawn.
+(11)~The observation that finite-precision coordinates make the problem a
+grid problem, on which Lemma~\ref{lem:height} is provable by induction on the
+depth; \texttt{collect\_terminates} and \texttt{collect\_total} were then
+added, needing one round of fixes to core-library lemma names before
+compiling.
