@@ -1,18 +1,41 @@
-% Standalone build of the divide-and-conquer part, using the preamble of the
-% official IEEE conference template (IEEEtran). To merge into the group paper:
-% upload this folder as dc/, copy the extra preamble lines below, set
-% \newcommand{\dcdir}{dc/}, and \input{dc/sec_dc} and \input{dc/app_dc}.
+% Group report, IEEE conference format. The divide-and-conquer half lives in
+% sec_dc.tex / app_dc.tex; everything the greedy half still needs is marked
+% with \partnertodo{...} and prints in red.
+%
+% To build on Overleaf: upload this folder, keep the file layout, compile with
+% pdfLaTeX. Nothing needs installing.
 \documentclass[conference]{IEEEtran}
 \IEEEoverridecommandlockouts
 \usepackage{cite}
 \usepackage{amsmath,amssymb,amsfonts}
+\usepackage{amsthm}
 \usepackage{algorithmic}
 \usepackage{graphicx}
 \usepackage{textcomp}
 \usepackage{xcolor}
-% --- added for the divide-and-conquer part ---
 \usepackage{url}
 \usepackage{listings}
+
+% Theorem-like environments with air around them. IEEEtran's defaults have
+% no vertical space, which makes a run of lemmas and proofs hard to read.
+\newtheoremstyle{spaced}
+  {10pt plus 2pt minus 2pt}  % space above
+  {10pt plus 2pt minus 2pt}  % space below
+  {\itshape}                 % body font
+  {}                         % indent
+  {\itshape}                 % head font
+  {:}                        % punctuation after head
+  {.5em}                     % space after head
+  {}                         % head spec (default)
+\theoremstyle{spaced}
+\newtheorem{lemma}{Lemma}
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}{Corollary}
+\renewenvironment{IEEEproof}[1][\IEEEproofname]{\par\vspace{4pt}%
+  \noindent\hspace{\parindent}{\itshape #1: }\ignorespaces}%
+  {\hfill\IEEEQED\par\vspace{6pt}}
+
+% Code listings (Appendix A) and the Lean proof (Appendix B).
 \lstset{basicstyle=\ttfamily\scriptsize, breaklines=true, columns=fullflexible,
   frame=single, keepspaces=true, showstringspaces=false,
   % Unicode symbols in the Lean listing, mapped to math symbols.
@@ -20,49 +43,95 @@
            {¬}{{$\neg$}}1 {↔}{{$\leftrightarrow$}}1 {→}{{$\rightarrow$}}1
            {∀}{{$\forall$}}1 {∃}{{$\exists$}}1 {⟨}{{$\langle$}}1 {⟩}{{$\rangle$}}1
            {×}{{$\times$}}1 {α}{{$\alpha$}}1 {∈}{{$\in$}}1 {·}{{$\cdot$}}1
-           {₂}{{$_2$}}1 {⊢}{{$\vdash$}}1 {⌈}{{$\lceil$}}1 {⌉}{{$\rceil$}}1}
-\newtheorem{lemma}{Lemma}
-\newtheorem{theorem}{Theorem}
+           {₁}{{$_1$}}1 {₂}{{$_2$}}1 {⊢}{{$\vdash$}}1
+           {⌈}{{$\lceil$}}1 {⌉}{{$\rceil$}}1 {⌊}{{$\lfloor$}}1 {⌋}{{$\rfloor$}}1}
+
+% Work still owed by the greedy half, printed in red so nothing is missed.
+\newcommand{\partnertodo}[1]{\textcolor{red}{\textbf{[Partner: #1]}}}
+
+% Folder holding the divide-and-conquer figures and code (empty here).
 \newcommand{\dcdir}{}
-% ---------------------------------------------
 
 \begin{document}
 
 \title{Greedy and Divide-and-Conquer Algorithms for Real-World Problems}
 
 \author{\IEEEauthorblockN{Ilan Danial}
-\IEEEauthorblockA{\textit{TODO: department, university} \\
-TODO: city, country \\
-TODO: email}
+\IEEEauthorblockA{\textit{Dept.\ of Computer \& Information Science \& Engineering} \\
+\textit{University of Florida}\\
+Gainesville, FL, USA \\
+ilan.danial@ufl.edu}
 \and
-\IEEEauthorblockN{TODO: partner}
-\IEEEauthorblockA{\textit{TODO: department, university} \\
-TODO: city, country \\
-TODO: email}
+\IEEEauthorblockN{\partnertodo{name}}
+\IEEEauthorblockA{\textit{Dept.\ of Computer \& Information Science \& Engineering} \\
+\textit{University of Florida}\\
+Gainesville, FL, USA \\
+\partnertodo{email}}
 }
 
 \maketitle
 
 \begin{abstract}
-TODO: joint abstract. Divide-and-conquer part: map-search sites cap the number
-of listings shown per window; an adaptive quadtree recursion enumerates every
-listing with $\Theta(n/k)$ requests and $\Theta(n\log(n/k))$ work for evenly
-spread listings, verified experimentally and on real Airbnb data.
+\partnertodo{one or two sentences on the greedy problem and result.}
+Map-search sites cap the number of listings shown per window, so collecting
+every listing in a city means choosing windows that never overflow. We model
+this as a point set on an integer grid and give a divide-and-conquer algorithm
+that recursively splits overflowing windows into quadrants. We prove it
+correct and bound its recursion depth by $\lceil\log_2 W\rceil$ for a map of
+$W$ grid units; every statement is machine-checked in Lean~4. For evenly
+spread listings it makes $\Theta(n/k)$ requests and $\Theta(n\log(n/k))$
+work, which experiments confirm on synthetic data and on 261 real Airbnb
+listings.
 \end{abstract}
 
 \begin{IEEEkeywords}
-divide and conquer, quadtree, web scraping, greedy algorithms
+\partnertodo{greedy keywords}, divide and conquer, quadtree, web scraping,
+formal verification
 \end{IEEEkeywords}
 
 \section{Introduction}
-TODO: joint introduction.
 
-% TODO: greedy section (partner)
+This report applies two algorithm-design techniques to problems that arose
+outside the classroom. For each we state the problem, abstract it, give an
+algorithm with a running-time analysis and a proof of correctness, explain the
+algorithm in the problem's own terms, and check the analysis experimentally.
+
+\partnertodo{one paragraph introducing the greedy problem and summarizing
+the result.}
+
+The second problem comes from web data collection. A map-search service
+shows at most $k$ listings for any map window, so a scraper that needs every
+listing in a city must split the map into windows that never overflow, using
+as few requests as it can. Section~\ref{sec:dc} models the map as an integer
+grid and the service as a capped oracle, solves the problem with a
+divide-and-conquer recursion on quadrants, proves the recursion correct and
+bounds its depth by $\lceil\log_2 W\rceil$, and verifies the predicted
+$\Theta(n\log(n/k))$ cost experimentally. Every statement in the correctness
+section is also machine-checked in Lean~4 (Appendix~\ref{app:dc-lean}).
+
+\section{Greedy: \partnertodo{section title}}
+\label{sec:greedy}
+
+\partnertodo{the greedy half: problem, abstraction, algorithm, running time,
+proof of correctness, explanation in the problem domain, experiments. Code
+goes in an appendix after Appendix~\ref{app:dc-lean}; LLM prompts and results
+in an appendix after Appendix~\ref{app:dc-llm}.}
 
 \input{sec_dc}
 
 \section{Conclusion}
-TODO: joint conclusion.
+
+\partnertodo{one paragraph concluding the greedy half.}
+
+For the capped map search, splitting overflowing windows into quadrants
+collects every listing with a number of requests within a constant factor of
+the $n/k$ lower bound when listings are spread evenly, and never recurses
+deeper than $\lceil\log_2 W\rceil$ levels on a map of $W$ grid units. The
+one assumption, that no single location holds more than $k$ listings, is
+necessary for any strategy that only sees capped search results. Measured
+running times match the $\Theta(n\log(n/k))$ analysis within a few percent
+over three orders of magnitude, and the correctness argument is
+machine-checked.
 
 \bibliographystyle{IEEEtran}
 \bibliography{refs}

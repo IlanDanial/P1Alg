@@ -1,18 +1,23 @@
 /-!
 # Capped map search: machine-checked correctness of `Collect`
 
-Formalizes Lemma 1 (the four quadrants partition a window) and Theorem 1
-(partial correctness of `Collect`) from the report. Coordinates are integers:
-any fixed-precision latitude/longitude scales to one. Only Lean's core library
-is used; every arithmetic step is discharged by `omega`.
+Formalizes Section II-D of the report, statement for statement. Coordinates
+are integers: reported coordinates have fixed precision, so the plane is a
+grid. Only Lean's core library is used; every arithmetic step is discharged by
+`omega`.
 
-`Collect` is given a fuel budget (a bound on the recursion depth) so that Lean
-accepts the definition. `collect_correct` is Theorem 1: *whenever* `collect`
-returns, its answer is exactly the listings in the window, every leaf is under
-the cap, and the leaves cover the window. `collect_terminates` is Lemma 2 on
-the grid: if no location holds more than `k` listings, depth `⌈log₂ W⌉`
-suffices, where `W` bounds the window's width and height. `collect_total`
-combines the two.
+| Report      | Lean                   |
+|-------------|------------------------|
+| Lemma 1     | `quadrants_partition`  |
+| Theorem 1   | `collect_correct`      |
+| Lemma 2     | `unit_window_fits`     |
+| Lemma 3     | `quadrants_side`       |
+| Theorem 2   | `collect_terminates`   |
+| Corollary 1 | `collect_total`        |
+
+`collect` carries its remaining depth budget as an explicit argument and
+returns `none` if the budget runs out. Theorem 2 shows that with budget
+`⌈log₂ W⌉` this never happens when no location holds more than `k` listings.
 -/
 
 namespace Quadtree
@@ -31,25 +36,30 @@ def inWin (p : Int × Int) (w : Window) : Prop :=
 instance (p : Int × Int) (w : Window) : Decidable (inWin p w) := by
   unfold inWin; infer_instance
 
-/-- The four quadrants of `w`, split at its midpoint. -/
+/-- The four quadrants of `w`, split at `⌊(x0+x1)/2⌋` and `⌊(y0+y1)/2⌋`. -/
 def q1 (w : Window) : Window := ⟨w.x0, (w.x0 + w.x1) / 2, w.y0, (w.y0 + w.y1) / 2⟩
 def q2 (w : Window) : Window := ⟨(w.x0 + w.x1) / 2, w.x1, w.y0, (w.y0 + w.y1) / 2⟩
 def q3 (w : Window) : Window := ⟨w.x0, (w.x0 + w.x1) / 2, (w.y0 + w.y1) / 2, w.y1⟩
 def q4 (w : Window) : Window := ⟨(w.x0 + w.x1) / 2, w.x1, (w.y0 + w.y1) / 2, w.y1⟩
 
+/-- `1` if `p` lies in `w`, else `0`. -/
+def ind (p : Int × Int) (w : Window) : Nat := if inWin p w then 1 else 0
+
 /-! ## Lemma 1: the quadrants partition the window -/
 
-/-- Every location in `w` lies in one of its quadrants, and conversely. -/
+/-- **Lemma 1.** A location in `w` lies in exactly one quadrant; a location
+outside `w` lies in none. -/
+theorem quadrants_partition (p : Int × Int) (w : Window) :
+    ind p (q1 w) + ind p (q2 w) + ind p (q3 w) + ind p (q4 w) = ind p w := by
+  -- Decide each of the five memberships, then the remaining goal is linear arithmetic.
+  by_cases h0 : inWin p w <;> by_cases h1 : inWin p (q1 w) <;> by_cases h2 : inWin p (q2 w) <;>
+    by_cases h3 : inWin p (q3 w) <;> by_cases h4 : inWin p (q4 w) <;>
+    simp only [ind, h0, h1, h2, h3, h4, ite_true, ite_false] <;>
+    simp only [inWin, q1, q2, q3, q4] at h0 h1 h2 h3 h4 <;> omega
+
+/-- Lemma 1 in its set form: `p` is in `w` iff it is in some quadrant. -/
 theorem quadrants_cover (p : Int × Int) (w : Window) :
     inWin p w ↔ inWin p (q1 w) ∨ inWin p (q2 w) ∨ inWin p (q3 w) ∨ inWin p (q4 w) := by
-  simp only [inWin, q1, q2, q3, q4]
-  omega
-
-/-- No location lies in two different quadrants. -/
-theorem quadrants_disjoint (p : Int × Int) (w : Window) :
-    (inWin p (q1 w) → ¬ inWin p (q2 w)) ∧ (inWin p (q1 w) → ¬ inWin p (q3 w)) ∧
-    (inWin p (q1 w) → ¬ inWin p (q4 w)) ∧ (inWin p (q2 w) → ¬ inWin p (q3 w)) ∧
-    (inWin p (q2 w) → ¬ inWin p (q4 w)) ∧ (inWin p (q3 w) → ¬ inWin p (q4 w)) := by
   simp only [inWin, q1, q2, q3, q4]
   omega
 
@@ -65,8 +75,8 @@ def listingsIn (w : Window) : List α :=
 def oracle (w : Window) : Option (List α) :=
   if (listingsIn P loc w).length ≤ k then some (listingsIn P loc w) else none
 
-/-- `Collect` from the report, with a fuel budget on the recursion depth.
-Returns the listings found and the leaf windows, or `none` if fuel runs out. -/
+/-- `Collect` from the report, with an explicit depth budget. Returns the
+listings found and the leaf windows, or `none` if the budget runs out. -/
 def collect : Nat → Window → Option (List α × List Window)
   | 0, w =>
     match oracle P loc k w with
@@ -82,13 +92,24 @@ def collect : Nat → Window → Option (List α × List Window)
         some (o1 ++ o2 ++ o3 ++ o4, l1 ++ l2 ++ l3 ++ l4)
       | _, _, _, _ => none
 
+/-- Number of leaves in `leaves` containing `p`. -/
+def leafCount (p : Int × Int) (leaves : List Window) : Nat :=
+  leaves.countP (fun l => decide (inWin p l))
+
+/-- The three properties Theorem 1 asserts of an answer `(out, leaves)` for `w`:
+`out` is exactly `P_w`; every leaf is under the cap; every location in `w` lies
+in exactly one leaf and every location outside `w` in none. -/
+def Correct (w : Window) (out : List α) (leaves : List Window) : Prop :=
+  (∀ a, a ∈ out ↔ a ∈ P ∧ inWin (loc a) w) ∧
+  (∀ l ∈ leaves, (listingsIn P loc l).length ≤ k) ∧
+  (∀ p, leafCount p leaves = ind p w)
+
 /-! ## Theorem 1: partial correctness -/
 
 theorem mem_listingsIn (a : α) (w : Window) :
     a ∈ listingsIn P loc w ↔ a ∈ P ∧ inWin (loc a) w := by
   simp [listingsIn, List.mem_filter]
 
-/-- What a non-overflowing oracle answer tells us. -/
 theorem oracle_some {w : Window} {A : List α} (h : oracle P loc k w = some A) :
     A = listingsIn P loc w ∧ (listingsIn P loc w).length ≤ k := by
   unfold oracle at h
@@ -96,27 +117,27 @@ theorem oracle_some {w : Window} {A : List α} (h : oracle P loc k w = some A) :
   · cases h; exact ⟨rfl, by assumption⟩
   · cases h
 
-/-- Correctness of a leaf: the oracle's answer is `P_w`, `w` is under the cap,
-and `[w]` trivially covers `w`. -/
-theorem leaf_correct {w : Window} {A : List α} (h : oracle P loc k w = some A) :
-    (∀ a, a ∈ A ↔ a ∈ P ∧ inWin (loc a) w) ∧
-    (∀ l ∈ [w], (listingsIn P loc l).length ≤ k) ∧
-    (∀ p, inWin p w ↔ ∃ l ∈ [w], inWin p l) := by
-  obtain ⟨rfl, hk⟩ := oracle_some P loc k h
-  refine ⟨fun a => mem_listingsIn P loc a w, ?_, ?_⟩
-  · intro l hl
-    simp only [List.mem_singleton] at hl
-    subst hl; exact hk
-  · intro p; simp
+theorem leafCount_singleton (p : Int × Int) (w : Window) : leafCount p [w] = ind p w := by
+  simp only [leafCount, ind, List.countP_cons, List.countP_nil, decide_eq_true_eq]
+  split <;> rfl
 
-/-- **Theorem 1.** If `collect` returns `(out, leaves)` then `out` is exactly the
-listings in `w`, every leaf holds at most `k` listings, and the leaves cover `w`. -/
+theorem leafCount_append (p : Int × Int) (l₁ l₂ : List Window) :
+    leafCount p (l₁ ++ l₂) = leafCount p l₁ + leafCount p l₂ := by
+  simp [leafCount, List.countP_append]
+
+/-- A non-overflowing window is a correct leaf. -/
+theorem leaf_correct {w : Window} {A : List α} (h : oracle P loc k w = some A) :
+    Correct P loc k w A [w] := by
+  obtain ⟨rfl, hk⟩ := oracle_some P loc k h
+  refine ⟨fun a => mem_listingsIn P loc a w, ?_, fun p => leafCount_singleton p w⟩
+  intro l hl
+  simp only [List.mem_singleton] at hl
+  subst hl; exact hk
+
+/-- **Theorem 1.** Whenever `collect` returns an answer, the answer is correct. -/
 theorem collect_correct (fuel : Nat) :
     ∀ (w : Window) (out : List α) (leaves : List Window),
-      collect P loc k fuel w = some (out, leaves) →
-        (∀ a, a ∈ out ↔ a ∈ P ∧ inWin (loc a) w) ∧
-        (∀ l ∈ leaves, (listingsIn P loc l).length ≤ k) ∧
-        (∀ p, inWin p w ↔ ∃ l ∈ leaves, inWin p l) := by
+      collect P loc k fuel w = some (out, leaves) → Correct P loc k w out leaves := by
   induction fuel with
   | zero =>
     intro w out leaves h
@@ -137,7 +158,8 @@ theorem collect_correct (fuel : Nat) :
         obtain ⟨m3, c3, v3⟩ := ih _ _ _ h3
         obtain ⟨m4, c4, v4⟩ := ih _ _ _ h4
         refine ⟨?_, ?_, ?_⟩
-        · intro a
+        · -- out = P_w: a listing is in some quadrant's output iff it is in w (Lemma 1).
+          intro a
           rw [quadrants_cover]
           simp only [List.mem_append, m1, m2, m3, m4, and_or_left, or_assoc]
         · intro l hl
@@ -148,11 +170,11 @@ theorem collect_correct (fuel : Nat) :
           · exact c3 l hl
           · exact c4 l hl
         · intro p
-          rw [quadrants_cover, v1, v2, v3, v4]
-          simp only [List.mem_append, or_and_right, exists_or, or_assoc]
+          rw [leafCount_append, leafCount_append, leafCount_append, v1, v2, v3, v4]
+          exact quadrants_partition p w
       · cases h
 
-/-! ## Lemma 2 (on the grid): depth `⌈log₂ W⌉` suffices -/
+/-! ## Lemma 2, Lemma 3, Theorem 2: the depth budget `⌈log₂ W⌉` suffices -/
 
 /-- `m ≤ k`: no single location holds more than `k` listings. -/
 def CapOK : Prop := ∀ p : Int × Int, (P.filter (fun a => decide (loc a = p))).length ≤ k
@@ -175,8 +197,8 @@ theorem length_filter_le_of_imp (l : List α) (p q : α → Bool) (h : ∀ a, p 
       · simp only [List.length_cons]; omega
       · exact ih
 
-/-- A window of side at most 1 contains at most one location, so under `CapOK`
-the oracle never overflows on it. -/
+/-- **Lemma 2.** A window of side at most 1 holds listings of a single
+location, so under `m ≤ k` it is never split. -/
 theorem unit_window_fits (hcap : CapOK P loc k) (w : Window)
     (hx : w.x1 - w.x0 ≤ 1) (hy : w.y1 - w.y0 ≤ 1) :
     (listingsIn P loc w).length ≤ k := by
@@ -185,41 +207,47 @@ theorem unit_window_fits (hcap : CapOK P loc k) (w : Window)
   simp only [decide_eq_true_eq, inWin, Prod.ext_iff] at ha ⊢
   omega
 
-/-- If the window's sides are at most `2^fuel`, `collect` with that much fuel
-returns an answer. The quadrants of a window of side `≤ 2B` have side `≤ B`. -/
-theorem collect_terminates (hcap : CapOK P loc k) (fuel : Nat) :
-    ∀ w : Window, w.x1 - w.x0 ≤ (2 : Int) ^ fuel → w.y1 - w.y0 ≤ (2 : Int) ^ fuel →
-      ∃ r, collect P loc k fuel w = some r := by
-  induction fuel with
+/-- **Lemma 3.** The quadrants of a window of side at most `2B` have side at most `B`. -/
+theorem quadrants_side (w : Window) (B : Int)
+    (hx : w.x1 - w.x0 ≤ 2 * B) (hy : w.y1 - w.y0 ≤ 2 * B) :
+    ((q1 w).x1 - (q1 w).x0 ≤ B ∧ (q1 w).y1 - (q1 w).y0 ≤ B) ∧
+    ((q2 w).x1 - (q2 w).x0 ≤ B ∧ (q2 w).y1 - (q2 w).y0 ≤ B) ∧
+    ((q3 w).x1 - (q3 w).x0 ≤ B ∧ (q3 w).y1 - (q3 w).y0 ≤ B) ∧
+    ((q4 w).x1 - (q4 w).x0 ≤ B ∧ (q4 w).y1 - (q4 w).y0 ≤ B) := by
+  simp only [q1, q2, q3, q4]
+  omega
+
+/-- **Theorem 2.** Under `m ≤ k`, on a window of side at most `2^D`, `collect`
+with depth budget `D` returns an answer. -/
+theorem collect_terminates (hcap : CapOK P loc k) (D : Nat) :
+    ∀ w : Window, w.x1 - w.x0 ≤ (2 : Int) ^ D → w.y1 - w.y0 ≤ (2 : Int) ^ D →
+      ∃ r, collect P loc k D w = some r := by
+  induction D with
   | zero =>
     intro w hx hy
     simp only [Int.pow_zero] at hx hy
     have hfits := unit_window_fits P loc k hcap w hx hy
     refine ⟨(listingsIn P loc w, [w]), ?_⟩
     simp [collect, oracle, hfits]
-  | succ fuel ih =>
+  | succ D ih =>
     intro w hx hy
-    rw [Int.pow_succ] at hx hy
+    rw [Int.pow_succ, Int.mul_comm] at hx hy
+    obtain ⟨⟨a1, b1⟩, ⟨a2, b2⟩, ⟨a3, b3⟩, ⟨a4, b4⟩⟩ := quadrants_side w _ hx hy
     unfold collect
     split
     · exact ⟨_, rfl⟩
-    · -- Each quadrant's sides are at most half the parent's, i.e. at most 2^fuel.
-      obtain ⟨⟨o1, l1⟩, h1⟩ := ih (q1 w) (by simp only [q1]; omega) (by simp only [q1]; omega)
-      obtain ⟨⟨o2, l2⟩, h2⟩ := ih (q2 w) (by simp only [q2]; omega) (by simp only [q2]; omega)
-      obtain ⟨⟨o3, l3⟩, h3⟩ := ih (q3 w) (by simp only [q3]; omega) (by simp only [q3]; omega)
-      obtain ⟨⟨o4, l4⟩, h4⟩ := ih (q4 w) (by simp only [q4]; omega) (by simp only [q4]; omega)
+    · obtain ⟨⟨o1, l1⟩, h1⟩ := ih (q1 w) a1 b1
+      obtain ⟨⟨o2, l2⟩, h2⟩ := ih (q2 w) a2 b2
+      obtain ⟨⟨o3, l3⟩, h3⟩ := ih (q3 w) a3 b3
+      obtain ⟨⟨o4, l4⟩, h4⟩ := ih (q4 w) a4 b4
       rw [h1, h2, h3, h4]
       exact ⟨_, rfl⟩
 
-/-- **Total correctness.** Under `m ≤ k`, on a window of side at most `2^D`,
-`collect` with depth bound `D` returns the listings in the window, every leaf
-is under the cap, and the leaves cover the window. -/
+/-- **Corollary 1 (total correctness).** Under `m ≤ k`, on a window of side at
+most `2^D`, `collect` with depth budget `D` returns a correct answer. -/
 theorem collect_total (hcap : CapOK P loc k) (D : Nat) (w : Window)
     (hx : w.x1 - w.x0 ≤ (2 : Int) ^ D) (hy : w.y1 - w.y0 ≤ (2 : Int) ^ D) :
-    ∃ out leaves, collect P loc k D w = some (out, leaves) ∧
-      (∀ a, a ∈ out ↔ a ∈ P ∧ inWin (loc a) w) ∧
-      (∀ l ∈ leaves, (listingsIn P loc l).length ≤ k) ∧
-      (∀ p, inWin p w ↔ ∃ l ∈ leaves, inWin p l) := by
+    ∃ out leaves, collect P loc k D w = some (out, leaves) ∧ Correct P loc k w out leaves := by
   obtain ⟨⟨out, leaves⟩, h⟩ := collect_terminates P loc k hcap D w hx hy
   exact ⟨out, leaves, h, collect_correct P loc k D w out leaves h⟩
 

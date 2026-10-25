@@ -12,7 +12,7 @@ overflows the cap `k` into four quadrants and recursing.
 | `plots.py` | Draws `figures/*.pdf|png` from `results/` and the Rincón data |
 | `sec_dc.tex`, `app_dc.tex`, `refs.bib` | Report section, appendices (code + LLM log), and citations |
 | `main.tex` | Standalone IEEE conference build; header comment explains merging into the group paper |
-| `proof/` | Lean 4 formalization of Lemmas 1–2 (on the integer grid) and Theorem 1 (`lake build` checks it; needs [elan](https://github.com/leanprover/elan)) |
+| `proof/` | Lean 4 formalization of every statement in the Correctness subsection (`lake build` checks it; needs [elan](https://github.com/leanprover/elan)) |
 | `data/rincon_listings.csv` | 261 real listing coordinates (Rincón, PR, scraped 2023-03-29) from [IlanDanial/airbnb_data](https://github.com/IlanDanial/airbnb_data) |
 
 ```
@@ -26,6 +26,7 @@ Requires Python 3.9+ with `matplotlib`.
 ## Analysis being verified
 
 - Uniformly spread listings: `T(n) = 4T(n/4) + Θ(n)`, so `T(n) = Θ(n log(n/k))` (Master theorem, case 2).
-- General case: `O(n · h)`, where the tree height `h ≤ log2(W/δ) + 1` depends on how tightly
-  listings crowd together (`δ`), not on `n`. Termination needs at most `k` listings at any single
-  coordinate. The Rincón data has up to 7 per coordinate because Airbnb rounds locations, so `k ≥ 7`.
+- General case: `O(n · h)`, where the tree height `h ≤ ceil(log2 W)` for a map of `W` grid units
+  (coordinates have fixed precision), independent of `n`. Termination needs at most `k` listings at
+  any single coordinate. The Rincón data has up to 7 per coordinate because Airbnb rounds locations,
+  so `k ≥ 7`.

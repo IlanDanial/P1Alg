@@ -1,7 +1,8 @@
 % Divide-and-conquer half of the report.
 % Preamble needs: amsmath, amssymb, algorithmic, graphicx, cite, and
-%   \newtheorem{lemma}{Lemma}  \newtheorem{theorem}{Theorem}
+%   \newtheorem{lemma}{Lemma}  \newtheorem{theorem}{Theorem}  \newtheorem{corollary}{Corollary}
 % \dcdir is the folder holding figures/ (empty when compiled from this folder).
+% Section II-D mirrors proof/Proof/Collect.lean statement for statement.
 
 \section{Divide and Conquer: Capped Map Search}
 \label{sec:dc}
@@ -10,8 +11,8 @@
 \label{sec:dc-problem}
 
 Airbnb's map search returns the listings inside the visible map window, but
-never more than a fixed number of them: a crowded window is silently
-truncated. A market study of a city needs \emph{every} listing, so a scraper
+never more than a fixed number of them. When a window holds more, the rest
+are cut off and cannot be reached from that window. A market study of a city needs \emph{every} listing, so a scraper
 must choose map windows small enough that none is truncated, using as few
 searches as possible. This problem came up while scraping Miami, FL and
 Rinc\'on, PR~\cite{danial2023airbnb}; a single city-wide window returned only a
@@ -20,11 +21,14 @@ small fraction of the listings.
 \subsection{Abstraction}
 \label{sec:dc-abstraction}
 
-Let $P$ be a set of $n$ \emph{listings}, each with a location in
-$\mathbb{R}^2$. Several listings may share a location, since Airbnb rounds
-coordinates; let $m$ be the largest number sharing one. A \emph{window} is a
-half-open rectangle $r=[x_0,x_1)\times[y_0,y_1)$, and $P_r$ denotes the
-listings located in $r$. The search region $R$ is a window with $P_R=P$.
+Reported coordinates have fixed precision (Airbnb gives at most five
+decimals), so we measure locations in grid units and model the map as
+$\mathbb{Z}^2$. Let $P$ be a set of $n$ \emph{listings}, each with a location
+in $\mathbb{Z}^2$. Several listings may share a location; let $m$ be the
+largest number sharing one. A \emph{window} is a half-open rectangle
+$r=[x_0,x_1)\times[y_0,y_1)$ with integer corners; its \emph{side} is
+$\max(x_1-x_0,\,y_1-y_0)$, and $P_r$ denotes the listings located in $r$. The
+search region $R$ is a window with $P_R=P$ and side $W$.
 
 The search service is an oracle with cap $k\ge1$:
 \begin{equation}
@@ -37,8 +41,9 @@ P_r & \text{if } |P_r|\le k,\\
 The problem is to compute $P$ from $R$ and $Q_k$ using as few oracle calls
 (web requests) as possible.
 
-Splitting a window at its midpoint, both horizontally and vertically, gives
-four equal \emph{quadrants}. Splitting recursively yields a
+Splitting a window at $x_m=\lfloor(x_0+x_1)/2\rfloor$ and
+$y_m=\lfloor(y_0+y_1)/2\rfloor$ gives four \emph{quadrants}
+$r_1,\dots,r_4$. Splitting recursively yields a
 \emph{quadtree}~\cite{finkel1974quad,samet1984quadtree} whose leaves are the
 windows actually read.
 
@@ -80,69 +85,109 @@ against the lower bound $n/k$.}
 \subsection{Correctness}
 \label{sec:dc-correctness}
 
+We first show that any answer \textsc{Collect} produces is right
+(Theorem~\ref{thm:correct}), then that it always produces one when $m\le k$
+(Theorem~\ref{thm:depth}).
+
 \begin{lemma}\label{lem:partition}
-The four quadrants of a window $r$ partition $r$.
+Every location in $r$ lies in exactly one quadrant of $r$, and no location
+outside $r$ lies in any quadrant.
 \end{lemma}
 \begin{IEEEproof}
-Let $(x_m,y_m)$ be the midpoint of $r$. For $(x,y)\in r$, exactly one of
-$x<x_m$ and $x\ge x_m$ holds, and exactly one of $y<y_m$ and $y\ge y_m$; the
-pair picks exactly one quadrant. Each quadrant lies in $r$ since
-$x_0\le x_m\le x_1$ and $y_0\le y_m\le y_1$.
+Since $x_0\le x_1$ we have $x_0\le x_m\le x_1$, and likewise for $y_m$. For
+$(x,y)\in r$, exactly one of $x<x_m$ and $x\ge x_m$ holds, and exactly one of
+$y<y_m$ and $y\ge y_m$; the pair selects exactly one quadrant. A location
+outside $r$ violates one of the four bounds of $r$, and every quadrant keeps
+or tightens each of them.
 \end{IEEEproof}
 
-Half-open windows are what make this work: a listing on a split line falls in
-exactly one quadrant, so it is neither lost nor counted twice.
+Because the windows are half-open, a listing on a split line falls in exactly
+one quadrant, so it is neither lost nor counted twice.
 
-Scale $R$ to the unit square and let $\delta\in(0,1]$ be the smallest
-coordinate-wise distance, $\max(|\Delta x|,|\Delta y|)$, between two listings at
-different locations ($\delta=1$ if there is only one location).
-
-\begin{lemma}\label{lem:height}
-If $m\le k$, the recursion tree of $\textsc{Collect}(R)$ has height at most
-$\lceil\log_2(1/\delta)\rceil$; in particular the algorithm terminates.
-\end{lemma}
-\begin{IEEEproof}
-A window at depth $d$ has side $2^{-d}$, so two listings inside it at different
-locations are less than $2^{-d}$ apart, i.e.\ $\delta<2^{-d}$. A window is split
-only if it holds more than $k\ge m$ listings, hence listings at two or more
-locations, hence $d<\log_2(1/\delta)$. So every split window has depth at most
-$\lceil\log_2(1/\delta)\rceil-1$ and every window depth at most
-$\lceil\log_2(1/\delta)\rceil$. A tree of bounded height with four children per
-internal node is finite.
-\end{IEEEproof}
-
-\begin{theorem}\label{thm:correct}
-If $m\le k$, $\textsc{Collect}(r)=P_r$ for every window $r$, and the leaf
-windows partition $r$ with at most $k$ listings each.
+\begin{theorem}[partial correctness]\label{thm:correct}
+If $\textsc{Collect}(r)$ terminates, it returns $P_r$, every leaf window holds
+at most $k$ listings, and every location in $r$ lies in exactly one leaf
+window (and no location outside $r$ in any).
 \end{theorem}
 \begin{IEEEproof}
-Strong induction on the height $h$ of the recursion tree at $r$ (finite by
-Lemma~\ref{lem:height}). If $h=0$, the oracle did not overflow, so
-$|P_r|\le k$ and line~4 returns $Q_k(r)=P_r$; the only leaf is $r$. If $h>0$,
-the algorithm recurses on the quadrants $r_1,\dots,r_4$, whose subtrees are
-shorter than $h$, so by induction $\textsc{Collect}(r_i)=P_{r_i}$ and the leaves
-under $r_i$ partition $r_i$ with at most $k$ listings each. By
+Strong induction on the height $h$ of the recursion tree. If $h=0$, the oracle
+did not overflow, so $|P_r|\le k$ and line~4 returns $Q_k(r)=P_r$; the only
+leaf is $r$ itself. If $h>0$, the algorithm recurses on the quadrants
+$r_1,\dots,r_4$, whose recursion trees are shorter than $h$, so by induction
+$\textsc{Collect}(r_i)=P_{r_i}$, the leaves under $r_i$ hold at most $k$
+listings, and each location is in exactly $[p\in r_i]$ of them. By
 Lemma~\ref{lem:partition} each listing of $P_r$ lies in exactly one $r_i$, so
-$\bigcup_i P_{r_i}=P_r$ and the leaves of the four subtrees partition $r$.
+$\bigcup_i P_{r_i}=P_r$; and the number of leaves containing a location $p$ is
+$\sum_i[p\in r_i]=[p\in r]$, again by Lemma~\ref{lem:partition}.
 \end{IEEEproof}
 
-The condition $m\le k$ is also necessary: if more than $k$ listings share a
-location, every window containing it overflows, so no strategy using $Q_k$
+\begin{lemma}\label{lem:unit}
+A window of side at most $1$ contains at most one location. Hence if
+$m\le k$, such a window holds at most $k$ listings and is never split.
+\end{lemma}
+\begin{IEEEproof}
+If $x_0\le x<x_1\le x_0+1$ then $x=x_0$, and likewise $y=y_0$, so
+$P_r$ consists of listings at $(x_0,y_0)$, of which there are at most $m\le k$.
+\end{IEEEproof}
+
+\begin{lemma}\label{lem:halving}
+If $r$ has side at most $2B$, each quadrant of $r$ has side at most $B$.
+\end{lemma}
+\begin{IEEEproof}
+With $S=x_1-x_0\le 2B$, the two horizontal halves have widths
+$x_m-x_0=\lfloor S/2\rfloor$ and $x_1-x_m=\lceil S/2\rceil$, both at most $B$;
+the same holds vertically.
+\end{IEEEproof}
+
+\begin{theorem}[termination and depth]\label{thm:depth}
+If $m\le k$ and $r$ has side at most $2^D$, then $\textsc{Collect}(r)$
+terminates with recursion depth at most $D$. In particular
+$\textsc{Collect}(R)$ has height at most $\lceil\log_2 W\rceil$.
+\end{theorem}
+\begin{IEEEproof}
+Induction on $D$. If $D=0$, the side is at most $1$, so by
+Lemma~\ref{lem:unit} the oracle answers and the recursion stops at depth $0$.
+For $D+1$: if the oracle answers, we are done; otherwise the quadrants have
+side at most $2^D$ by Lemma~\ref{lem:halving}, so by induction each recursive
+call terminates within depth $D$, and $\textsc{Collect}(r)$ within depth
+$D+1$.
+\end{IEEEproof}
+
+\begin{corollary}[total correctness]\label{cor:total}
+If $m\le k$, $\textsc{Collect}(R)$ terminates within depth
+$\lceil\log_2 W\rceil$ and returns $P$; its leaf windows partition $R$ and
+each holds at most $k$ listings.
+\end{corollary}
+\begin{IEEEproof}
+Theorem~\ref{thm:depth} gives termination, Theorem~\ref{thm:correct} the rest.
+\end{IEEEproof}
+
+The condition $m\le k$ is also necessary. If more than $k$ listings share a
+location, every window containing it overflows, and no strategy using $Q_k$
 can reveal them.
 
-Lemmas~\ref{lem:partition}--\ref{lem:height} and Theorem~\ref{thm:correct}
-are also machine-checked in Lean~4~\cite{lean4} (Appendix~\ref{app:dc-lean}).
-Reported coordinates have finite precision (Airbnb gives five decimals), so
-the formalization works on an integer grid, where $\delta$ is one grid unit.
-There Lemma~\ref{lem:height} reads: if $m\le k$, recursion depth
-$\lceil\log_2 W\rceil$ suffices for a window of side $W$; combined with
-Theorem~\ref{thm:correct} this gives total correctness. The real-valued form
-of Lemma~\ref{lem:height} is proved only on paper. The nearest existing
-formalizations, region quadtrees in Isabelle~\cite{nipkow2024quad,nipkow2024afp}
-and $k$-d trees in Isabelle and Coq~\cite{rau2019kdtree,hamid2023kdtree},
-obtain termination from a fixed grid exponent or from the point count
-shrinking at each median split; neither covers a space-splitting tree over
-arbitrary points, so the proof here was written from scratch.
+Every statement in this subsection is machine-checked in Lean~4~\cite{lean4}
+(Appendix~\ref{app:dc-lean}), under the following correspondence:
+\begin{center}\small
+\begin{tabular}{@{}ll@{}}
+Lemma~\ref{lem:partition} & \texttt{quadrants\_partition}\\
+Theorem~\ref{thm:correct} & \texttt{collect\_correct}\\
+Lemma~\ref{lem:unit} & \texttt{unit\_window\_fits}\\
+Lemma~\ref{lem:halving} & \texttt{quadrants\_side}\\
+Theorem~\ref{thm:depth} & \texttt{collect\_terminates}\\
+Corollary~\ref{cor:total} & \texttt{collect\_total}
+\end{tabular}
+\end{center}
+Lean accepts a recursive
+definition only with a termination argument, so its \textsc{Collect} takes
+the remaining depth budget as an explicit parameter and returns $\bot$ if the
+budget runs out. Theorem~\ref{thm:depth} says that the budget
+$\lceil\log_2 W\rceil$ never runs out. The closest existing formalizations,
+region quadtrees in Isabelle~\cite{nipkow2024quad,nipkow2024afp} and $k$-d
+trees in Isabelle and Coq~\cite{rau2019kdtree,hamid2023kdtree}, obtain
+termination from a fixed grid exponent or from the point count shrinking at
+each median split. Neither covers a tree that splits space over arbitrary
+points.
 
 \subsection{Running Time}
 \label{sec:dc-analysis}
@@ -161,8 +206,9 @@ $0,\dots,h-1$ and have four children each, so
 \label{eq:general}
 \end{equation}
 The lower bound holds because the leaves cover $P$ with at most $k$ listings
-each. By Lemma~\ref{lem:height}, $T=O(n\log(1/\delta))$: the cost is governed
-by how tightly listings crowd, not by $n$ alone.
+each. By Theorem~\ref{thm:depth}, $h\le\lceil\log_2 W\rceil$, so
+$T=O(n\log W)$: the cost is governed by the coordinate resolution, not by $n$
+alone.
 
 In the balanced case, where each split sends about $n/4$ listings to each
 quadrant (true in expectation for uniformly random locations),
@@ -188,13 +234,15 @@ within a constant factor of the $n/k$ requests any strategy must make.
 Search the whole city in one window. If the results fit on the pages the site
 shows, record them. Otherwise cut the window into four equal tiles and repeat
 on each. A listing exactly on a cut goes to the tile right of or above it, so
-it is recorded once. Dense neighborhoods get zoomed into repeatedly; open water
-is dismissed after one search. The number of searches is proportional to
-$n/k$, the number of listings divided by the number shown per search, by
-\eqref{eq:requests}. The only obstacle is an address with more listings than
-the cap, such as an apartment building whose units share rounded coordinates:
-no zoom level separates them, which is why Theorem~\ref{thm:correct} needs
-$m\le k$. In Rinc\'on at most $7$ listings share a location, so any $k\ge7$
+it is recorded once. Dense neighborhoods are zoomed into repeatedly, while
+open water is dismissed after one search. By \eqref{eq:requests}, the number
+of searches is proportional to $n/k$, the number of listings divided by the
+number shown per search, and the zoom never goes deeper than
+$\lceil\log_2 W\rceil$ levels. With five-decimal coordinates over a one-degree
+span, $W=10^5$ and $17$ levels suffice. The method fails only at an address
+with more listings than the cap, such as an apartment building whose units
+share rounded coordinates. No zoom level separates them, which is why
+Corollary~\ref{cor:total} needs $m\le k$. In Rinc\'on at most $7$ listings share a location, so any $k\ge7$
 works.
 
 \subsection{Experiments}
@@ -217,20 +265,23 @@ works.
 
 \textbf{Setup.} \textsc{Collect} was implemented in Python~3.14
 (Appendix~\ref{app:dc-code}) and run on an AMD Ryzen~7 9800X3D. The oracle is
-simulated: each node partitions the listings it holds among its quadrants,
-which is the $\Theta(|P_r|)$ step of \eqref{eq:recurrence}. We used $k=50$
-and $n=2^{10},\dots,2^{19}$ listings in the unit square, either uniform or
-drawn from $20$ Gaussian clusters ($\sigma=0.02$). Each size was run five
-times on fresh random inputs; we report the fastest run with garbage
-collection disabled, as \texttt{timeit} does~\cite{python-timeit}. Every run
-was checked to return each listing exactly once.
+simulated. Each node partitions the listings it holds among its quadrants,
+which is the $\Theta(|P_r|)$ step of \eqref{eq:recurrence}. Coordinates are
+double-precision numbers in the unit square, i.e.\ the grid model at
+resolution $2^{-52}$; the implementation also stops at windows narrower than
+$10^{-9}$ and flags them, which never happened. We used $k=50$ and
+$n=2^{10},\dots,2^{19}$ listings, either uniform or drawn from $20$ Gaussian
+clusters ($\sigma=0.02$). Each size was run five times on fresh random inputs;
+we report the fastest run with garbage collection disabled, as
+\texttt{timeit} does~\cite{python-timeit}. Every run was checked to return
+each listing exactly once.
 
 \textbf{Running time.} Fig.~\ref{fig:dc-scaling}(a) shows measured time
-against the fitted model; Fig.~\ref{fig:dc-scaling}(b) divides time by
-$n\log_2(n/k)$. Over a $512\times$ range of $n$ the ratio stays within
-$26$--$43$\,ns (uniform) and $36$--$48$\,ns (clustered), confirming
+against the fitted model. Fig.~\ref{fig:dc-scaling}(b) divides time by
+$n\log_2(n/k)$. Over a $512\times$ range of $n$ the ratio stays between
+$26$ and $43$\,ns (uniform) and between $36$ and $48$\,ns (clustered), confirming
 $\Theta(n\log(n/k))$. The zig-zag arises because the tree gains a level only
-when $n$ grows about fourfold, so the true cost rises in steps; the slight rise
+when $n$ grows about fourfold, so the true cost rises in steps. The slight rise
 at the largest sizes is consistent with cache effects. Clustered inputs cost
 about $20\%$ more because their trees are two levels taller.
 
@@ -257,10 +308,12 @@ $n$ & measured & predicted & height \\
 \end{tabular}
 \end{table}
 
-\textbf{Crowding.} To test \eqref{eq:general}, we fixed $n=10{,}000$ uniform
+\textbf{Crowding.} To test the depth bound, we fixed $n=10{,}000$ uniform
 listings and added $k+1=51$ listings inside a square of side
-$\delta=2^{-2},\dots,2^{-28}$. Fig.~\ref{fig:dc-depth} shows the tree height
-tracking $\log_2(1/\delta)$ (Lemma~\ref{lem:height}) although $n$ is fixed,
+$\delta=2^{-2},\dots,2^{-28}$. Isolating that square requires windows of side
+about $\delta$, i.e.\ a grid of $W=2^e$ units when $\delta=2^{-e}$.
+Fig.~\ref{fig:dc-depth} shows the tree height tracking
+$\log_2(1/\delta)=\log_2 W$ (Theorem~\ref{thm:depth}) although $n$ is fixed,
 and each extra level adding about four requests, the $4h$ term of
 \eqref{eq:general}.
 

@@ -4,7 +4,7 @@
 \label{app:dc-code}
 
 The algorithm (\texttt{quadtree.py}) and the measurements behind
-Figs.~\ref{fig:dc-scaling}--\ref{fig:dc-depth} and Table~\ref{tab:dc-requests}
+Figs.~\ref{fig:dc-scaling} and~\ref{fig:dc-depth} and Table~\ref{tab:dc-requests}
 (\texttt{experiments.py}). The plotting script, the unit tests, the Rinc\'on
 data file and the raw measurements are in the project
 repository.\footnote{\url{https://github.com/IlanDanial/P1Alg}}
@@ -15,11 +15,13 @@ repository.\footnote{\url{https://github.com/IlanDanial/P1Alg}}
 \section{Machine-Checked Proof}
 \label{app:dc-lean}
 
-Lemma~\ref{lem:partition} (\texttt{quadrants\_cover},
-\texttt{quadrants\_disjoint}), Theorem~\ref{thm:correct}
-(\texttt{collect\_correct}), Lemma~\ref{lem:height} on the integer grid
-(\texttt{collect\_terminates}) and their combination into total correctness
-(\texttt{collect\_total}) in Lean~4.35, using only the core library.
+Section~\ref{sec:dc-correctness} in Lean~4.35, using only the core library:
+Lemma~\ref{lem:partition} (\texttt{quadrants\_partition}),
+Theorem~\ref{thm:correct} (\texttt{collect\_correct}),
+Lemma~\ref{lem:unit} (\texttt{unit\_window\_fits}),
+Lemma~\ref{lem:halving} (\texttt{quadrants\_side}),
+Theorem~\ref{thm:depth} (\texttt{collect\_terminates}) and
+Corollary~\ref{cor:total} (\texttt{collect\_total}).
 \texttt{lake build} in \texttt{divide\_and\_conquer/proof} checks it; the
 theorems depend on no axioms beyond Lean's standard three
 (\texttt{propext}, \texttt{Classical.choice}, \texttt{Quot.sound}).
@@ -65,11 +67,27 @@ proofs, numbers, and citations were checked by the authors.
   not exist''
 \item ``do both, go for the full proof, or is there a solution we can do that
   would be easier to prove and solve the problem all the same''
+\item ``why would anything in the paper not exactly match the proof we did
+  with elon'', then ``we need to have the paper be matching hte lean''
+\item ``can we get rid of common AI'sms like mdashes list a couple more ai
+  isms''
+\item Two screenshots of the PDF with ``why is this structure so odd'',
+  ``things are so packed together that it is unreadable, also the -- looks
+  like m dashes'', a request that only the partner's remaining work be marked
+  as to do, and the author's affiliation details.
+\item ``whats left for me to do'', ``according to the instructions it seems
+  like it is asking me to list everything in the appendix'', and the decision
+  to export the transcript into the repository rather than typeset it here.
 \end{enumerate}
 
+\textbf{Full transcript.} The complete session, exported with Claude Code's
+\texttt{/export} command, is in the repository at
+\texttt{divide\_and\_conquer/appendix/transcript.md}
+(commit \texttt{COMMITHASH}), with every prompt and response in order.
+Intermediate versions of the code, figures and this report are in the
+repository's commit history.
+
 \textbf{Results.}
-% TODO: paste the full exported transcript (Claude Code: /export) here or in
-% supplementary material; the assignment requires all intermediate results.
 (1)~A summary of the assignment and four candidate divide-and-conquer problems.
 (2)~An analysis of the scraper's \texttt{subdivide} recursion as an adaptive
 quadtree, identifying the termination issue for co-located listings and the
@@ -98,11 +116,24 @@ build.
 proof, with three further gaps listed (integer midpoints, the oracle not being
 a black box, no duplicate-freeness proof).
 (10)~A web search that found the Isabelle and Coq formalizations cited in
-Section~\ref{sec:dc-correctness}, none covering separation-based termination;
-the assistant's earlier claim that no related formalization existed was
+Section~\ref{sec:dc-correctness}, none covering separation-based termination.
+The assistant's earlier claim that no related formalization existed was
 withdrawn.
 (11)~The observation that finite-precision coordinates make the problem a
-grid problem, on which Lemma~\ref{lem:height} is provable by induction on the
+grid problem, on which Theorem~\ref{thm:depth} is provable by induction on the
 depth; \texttt{collect\_terminates} and \texttt{collect\_total} were then
 added, needing one round of fixes to core-library lemma names before
 compiling.
+(12)~A table of the remaining differences between the paper's model
+(real coordinates, exact midpoints, leaves asserted disjoint) and the Lean
+model; the paper's abstraction and Section~\ref{sec:dc-correctness} were then
+rewritten on the integer grid to match the Lean file statement for statement,
+and leaf disjointness was added to the Lean proof
+(\texttt{quadrants\_partition} in counting form).
+(13)~A scan of the report for colon-spliced sentences, filler adverbs and
+similar tics, which were removed; no em dashes were present.
+(14)~Theorem spacing via \texttt{amsthm}, numeric ranges rewritten in words,
+the front matter and introduction and conclusion for this half written, and
+the partner's remaining items marked in red.
+(15)~The advice that the full transcript must be included rather than
+attached, then the pointer above once the transcript was exported.
