@@ -1,22 +1,22 @@
 /-!
 # Capped map search: machine-checked correctness of `Collect`
 
-Formalizes Section II-D of the report, statement for statement. Coordinates
+Formalizes Section III-D of the report, statement for statement. Coordinates
 are integers: reported coordinates have fixed precision, so the plane is a
 grid. Only Lean's core library is used; every arithmetic step is discharged by
 `omega`.
 
 | Report      | Lean                   |
 |-------------|------------------------|
-| Lemma 1     | `quadrants_partition`  |
-| Theorem 1   | `collect_correct`      |
-| Lemma 2     | `unit_window_fits`     |
-| Lemma 3     | `quadrants_side`       |
-| Theorem 2   | `collect_terminates`   |
+| Lemma 3     | `quadrants_partition`  |
+| Theorem 3   | `collect_correct`      |
+| Lemma 4     | `unit_window_fits`     |
+| Lemma 5     | `quadrants_side`       |
+| Theorem 4   | `collect_terminates`   |
 | Corollary 1 | `collect_total`        |
 
 `collect` carries its remaining depth budget as an explicit argument and
-returns `none` if the budget runs out. Theorem 2 shows that with budget
+returns `none` if the budget runs out. Theorem 4 shows that with budget
 `⌈log₂ W⌉` this never happens when no location holds more than `k` listings.
 -/
 
@@ -45,9 +45,9 @@ def q4 (w : Window) : Window := ⟨(w.x0 + w.x1) / 2, w.x1, (w.y0 + w.y1) / 2, w
 /-- `1` if `p` lies in `w`, else `0`. -/
 def ind (p : Int × Int) (w : Window) : Nat := if inWin p w then 1 else 0
 
-/-! ## Lemma 1: the quadrants partition the window -/
+/-! ## Lemma 3: the quadrants partition the window -/
 
-/-- **Lemma 1.** A location in `w` lies in exactly one quadrant; a location
+/-- **Lemma 3.** A location in `w` lies in exactly one quadrant; a location
 outside `w` lies in none. -/
 theorem quadrants_partition (p : Int × Int) (w : Window) :
     ind p (q1 w) + ind p (q2 w) + ind p (q3 w) + ind p (q4 w) = ind p w := by
@@ -57,7 +57,7 @@ theorem quadrants_partition (p : Int × Int) (w : Window) :
     simp only [ind, h0, h1, h2, h3, h4, ite_true, ite_false] <;>
     simp only [inWin, q1, q2, q3, q4] at h0 h1 h2 h3 h4 <;> omega
 
-/-- Lemma 1 in its set form: `p` is in `w` iff it is in some quadrant. -/
+/-- Lemma 3 in its set form: `p` is in `w` iff it is in some quadrant. -/
 theorem quadrants_cover (p : Int × Int) (w : Window) :
     inWin p w ↔ inWin p (q1 w) ∨ inWin p (q2 w) ∨ inWin p (q3 w) ∨ inWin p (q4 w) := by
   simp only [inWin, q1, q2, q3, q4]
@@ -96,7 +96,7 @@ def collect : Nat → Window → Option (List α × List Window)
 def leafCount (p : Int × Int) (leaves : List Window) : Nat :=
   leaves.countP (fun l => decide (inWin p l))
 
-/-- The three properties Theorem 1 asserts of an answer `(out, leaves)` for `w`:
+/-- The three properties Theorem 3 asserts of an answer `(out, leaves)` for `w`:
 `out` is exactly `P_w`; every leaf is under the cap; every location in `w` lies
 in exactly one leaf and every location outside `w` in none. -/
 def Correct (w : Window) (out : List α) (leaves : List Window) : Prop :=
@@ -104,7 +104,7 @@ def Correct (w : Window) (out : List α) (leaves : List Window) : Prop :=
   (∀ l ∈ leaves, (listingsIn P loc l).length ≤ k) ∧
   (∀ p, leafCount p leaves = ind p w)
 
-/-! ## Theorem 1: partial correctness -/
+/-! ## Theorem 3: partial correctness -/
 
 theorem mem_listingsIn (a : α) (w : Window) :
     a ∈ listingsIn P loc w ↔ a ∈ P ∧ inWin (loc a) w := by
@@ -134,7 +134,7 @@ theorem leaf_correct {w : Window} {A : List α} (h : oracle P loc k w = some A) 
   simp only [List.mem_singleton] at hl
   subst hl; exact hk
 
-/-- **Theorem 1.** Whenever `collect` returns an answer, the answer is correct. -/
+/-- **Theorem 3.** Whenever `collect` returns an answer, the answer is correct. -/
 theorem collect_correct (fuel : Nat) :
     ∀ (w : Window) (out : List α) (leaves : List Window),
       collect P loc k fuel w = some (out, leaves) → Correct P loc k w out leaves := by
@@ -158,7 +158,7 @@ theorem collect_correct (fuel : Nat) :
         obtain ⟨m3, c3, v3⟩ := ih _ _ _ h3
         obtain ⟨m4, c4, v4⟩ := ih _ _ _ h4
         refine ⟨?_, ?_, ?_⟩
-        · -- out = P_w: a listing is in some quadrant's output iff it is in w (Lemma 1).
+        · -- out = P_w: a listing is in some quadrant's output iff it is in w (Lemma 3).
           intro a
           rw [quadrants_cover]
           simp only [List.mem_append, m1, m2, m3, m4, and_or_left, or_assoc]
@@ -174,7 +174,7 @@ theorem collect_correct (fuel : Nat) :
           exact quadrants_partition p w
       · cases h
 
-/-! ## Lemma 2, Lemma 3, Theorem 2: the depth budget `⌈log₂ W⌉` suffices -/
+/-! ## Lemma 4, Lemma 5, Theorem 4: the depth budget `⌈log₂ W⌉` suffices -/
 
 /-- `m ≤ k`: no single location holds more than `k` listings. -/
 def CapOK : Prop := ∀ p : Int × Int, (P.filter (fun a => decide (loc a = p))).length ≤ k
@@ -197,7 +197,7 @@ theorem length_filter_le_of_imp (l : List α) (p q : α → Bool) (h : ∀ a, p 
       · simp only [List.length_cons]; omega
       · exact ih
 
-/-- **Lemma 2.** A window of side at most 1 holds listings of a single
+/-- **Lemma 4.** A window of side at most 1 holds listings of a single
 location, so under `m ≤ k` it is never split. -/
 theorem unit_window_fits (hcap : CapOK P loc k) (w : Window)
     (hx : w.x1 - w.x0 ≤ 1) (hy : w.y1 - w.y0 ≤ 1) :
@@ -207,7 +207,7 @@ theorem unit_window_fits (hcap : CapOK P loc k) (w : Window)
   simp only [decide_eq_true_eq, inWin, Prod.ext_iff] at ha ⊢
   omega
 
-/-- **Lemma 3.** The quadrants of a window of side at most `2B` have side at most `B`. -/
+/-- **Lemma 5.** The quadrants of a window of side at most `2B` have side at most `B`. -/
 theorem quadrants_side (w : Window) (B : Int)
     (hx : w.x1 - w.x0 ≤ 2 * B) (hy : w.y1 - w.y0 ≤ 2 * B) :
     ((q1 w).x1 - (q1 w).x0 ≤ B ∧ (q1 w).y1 - (q1 w).y0 ≤ B) ∧
@@ -217,7 +217,7 @@ theorem quadrants_side (w : Window) (B : Int)
   simp only [q1, q2, q3, q4]
   omega
 
-/-- **Theorem 2.** Under `m ≤ k`, on a window of side at most `2^D`, `collect`
+/-- **Theorem 4.** Under `m ≤ k`, on a window of side at most `2^D`, `collect`
 with depth budget `D` returns an answer. -/
 theorem collect_terminates (hcap : CapOK P loc k) (D : Nat) :
     ∀ w : Window, w.x1 - w.x0 ≤ (2 : Int) ^ D → w.y1 - w.y0 ≤ (2 : Int) ^ D →

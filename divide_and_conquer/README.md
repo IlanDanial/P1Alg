@@ -10,8 +10,7 @@ overflows the cap `k` into four quadrants and recursing.
 | `test_quadtree.py` | Correctness checks: every listing found once, leaves tile the map, every leaf has at most `k` listings |
 | `experiments.py` | Timing experiments; writes `results/*.csv` |
 | `plots.py` | Draws `figures/*.pdf|png` from `results/` and the Rincón data |
-| `sec_dc.tex`, `app_dc.tex`, `refs.bib` | Report section, appendices (code + LLM log), and citations |
-| `main.tex` | Standalone IEEE conference build; header comment explains merging into the group paper |
+| `sec_dc.tex`, `app_dc.tex` | Report section and appendices; input by `../report.tex`, citations in `../refs.bib` |
 | `proof/` | Lean 4 formalization of every statement in the Correctness subsection (`lake build` checks it; needs [elan](https://github.com/leanprover/elan)) |
 | `data/rincon_listings.csv` | 261 real listing coordinates (Rincón, PR, scraped 2023-03-29) from [IlanDanial/airbnb_data](https://github.com/IlanDanial/airbnb_data) |
 

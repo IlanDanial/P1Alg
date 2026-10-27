@@ -1,0 +1,100 @@
+% Appendices for the greedy half. Needs \usepackage{listings}.
+% Paths are relative to the repository root, where report.tex lives.
+
+\section{Greedy Code}
+\label{app:greedy-code}
+
+The algorithm (\texttt{refresh\_days.py}) and the measurements behind
+Fig.~\ref{fig:greedy-scaling} (\texttt{experiments.py}). The unit tests
+(\texttt{test\_refresh\_days.py}), the download script
+(\texttt{fetch\_sailings.py}), the plotting script, the sailing data and the
+raw measurements are in the \texttt{greedy/} folder of the project
+repository.\footnote{\url{https://github.com/IlanDanial/P1Alg}}
+
+\lstinputlisting[language=Python,caption={refresh\_days.py}]{greedy/refresh_days.py}
+\lstinputlisting[language=Python,caption={experiments.py}]{greedy/experiments.py}
+
+\section{Greedy Machine-Checked Proof}
+\label{app:greedy-lean}
+
+Lemma~\ref{lem:greedy-cover} (\texttt{refresh\_covers}),
+Lemma~\ref{lem:greedy-disjoint} (\texttt{witnesses\_pairwise\_disjoint}) and
+Theorem~\ref{thm:greedy-opt} (\texttt{refresh\_optimal}) in Lean~4.35, using
+only the core library. \texttt{lake build} in \texttt{greedy/proof} checks
+it; the theorems depend on no axioms beyond Lean's standard three
+(\texttt{propext}, \texttt{Classical.choice}, \texttt{Quot.sound}).
+
+\lstinputlisting[language={},caption={proof/Proof/Refresh.lean},
+  literate={≤}{{$\le$}}1 {≠}{{$\ne$}}1 {∧}{{$\wedge$}}1 {∨}{{$\vee$}}1
+           {¬}{{$\neg$}}1 {→}{{$\rightarrow$}}1 {∀}{{$\forall$}}1
+           {∃}{{$\exists$}}1 {⟨}{{$\langle$}}1 {⟩}{{$\rangle$}}1
+           {×}{{$\times$}}1 {∈}{{$\in$}}1 {·}{{$\cdot$}}1 {…}{{$\ldots$}}1
+           {∞}{{$\infty$}}1]{greedy/proof/Proof/Refresh.lean}
+
+\section{LLM Usage: Greedy Part}
+\label{app:greedy-llm}
+
+\textbf{Tools.} (1)~A GPT-6 Astra brainstorming session that utilized back and forth questioning to get a rough concept of a plan. (2)~A GPT-6 Astra thread that reviewed and revised the project prompt. (3)~This
+implementation session: Claude Code (Anthropic's command-line coding agent),
+model Claude Opus~5.5 (\texttt{claude-opus-5-5}), which wrote the code, reviewed
+the experiments, and revised the draft report and Section~\ref{sec:greedy}.
+
+\textbf{Prompt (verbatim).} The project implementation session was driven by the
+single prompt below, reproduced exactly.
+
+\lstinputlisting[language={},caption={Implementation prompt},
+  literate={×}{{$\times$}}1 {…}{{$\ldots$}}1 {′}{{$'$}}1 {←}{{$\leftarrow$}}1
+           {→}{{$\rightarrow$}}1 {∀}{{$\forall$}}1 {∅}{{$\emptyset$}}1
+           {∈}{{$\in$}}1 {−}{{$-$}}1 {∞}{{$\infty$}}1 {≤}{{$\le$}}1
+           {≥}{{$\ge$}}1]{greedy/appendix/prompt.md}
+
+\textbf{Results, by step.}
+(1)~\texttt{refresh\_days.py}: \texttt{refresh\_days} returns the days and
+the witnesses; \texttt{windows} builds clipped windows from sailing dates; a
+separate \texttt{refresh\_days\_sorted} holds the scan alone for the
+pre-sorted experiment.
+(2)~\texttt{test\_refresh\_days.py} with the five requested checks and a
+check that a reversed interval raises \texttt{ValueError}. All six tests
+passed on the first run.
+(3)~\texttt{fetch\_sailings.py} downloaded six months of sailings on
+October 26, 2026: one page per month (no month exceeded $200$ itineraries),
+$383$ sailings, every duration equal to arrival minus departure. With
+$c=2$: $n=383$ windows, $m=3$ refresh days (October 30, 2026; January 14,
+2027; March 30, 2027), horizon $184$ days. Carnival's help page returned
+HTTP~403 to scripted requests and never finished loading in a browser, so the
+$76$- and $91$-day deadlines were read from the Internet Archive's copy of
+the same page (July 23, 2025), cited in~\cite{carnival481}. That table counts
+cruise length in days; the session checked that the ``$N$-Day'' itinerary
+titles, the duration field, and arrival minus departure agree on all $383$
+sailings, so the $5$-or-fewer rule applies to the duration field directly.
+(4)~\texttt{experiments.py} and \texttt{plots.py}, about one minute to run.
+The full algorithm fit $c\,n\log_2 n$ with $R^2=0.998$. The scan alone grew
+from $20$ to $117$\,ns per window above $n=2^{17}$; a follow-up timing that
+re-allocated the sorted tuples in memory order reduced this to $70$\,ns at
+$n=2^{22}$, which supports, but does not prove, the cache explanation in
+Section~\ref{sec:greedy-experiments}. After the first compile, the
+least-squares line in Fig.~\ref{fig:greedy-scaling}(c) sat above every
+in-cache point because the large sizes dominated it, so the fit was
+restricted to $n\le2^{17}$ and the caption says so; legends that covered
+data points were moved.
+(5)~Section~\ref{sec:greedy}, the bibliography entries, and the front
+matter, introduction and conclusion in \texttt{main.tex}.
+(6)~Tectonic is not in the \texttt{winget} catalog (both the package id and
+a search returned nothing), so MiKTeX was installed with \texttt{winget},
+with on-the-fly package installation enabled.
+(7)~This appendix, \texttt{greedy/README.md} and the top-level
+\texttt{README.md}.
+(8)~Verification: unit tests, presence of every output file, and
+\texttt{git status} listing only the permitted paths.
+(9)~Lean formalization. The official \texttt{elan} installer was run (its
+first invocation failed on a PowerShell argument-type error and was rerun);
+\texttt{lake build} of the divide-and-conquer proof succeeded, installing
+Lean~4.35.0. \texttt{greedy/proof/Proof/Refresh.lean} defines the scan with
+$\mathit{last}$ as an \texttt{Option Int} argument (\texttt{none} for
+$-\infty$) returning the witnesses, and proves \texttt{refresh\_covers},
+\texttt{witnesses\_pairwise\_disjoint} and \texttt{refresh\_optimal}.
+
+\textbf{Full transcripts.} The prompts, tool calls and responses of every
+session, in order, are in the repository at
+\texttt{greedy/appendix/transcript.md}. To the best of my knowledge they
+comply with the LLM policies of the course.

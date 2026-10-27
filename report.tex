@@ -1,8 +1,9 @@
 % Group report, IEEE conference format. The divide-and-conquer half lives in
-% sec_dc.tex / app_dc.tex; everything the greedy half still needs is marked
-% with \partnertodo{...} and prints in red.
+% divide_and_conquer/sec_dc.tex / app_dc.tex, the greedy half in
+% greedy/sec_greedy.tex / app_greedy.tex. Work still owed would be marked with the red
+% placeholder macro below; none remains.
 %
-% To build on Overleaf: upload this folder, keep the file layout, compile with
+% To build on Overleaf: upload the whole repository, keep the file layout, compile with
 % pdfLaTeX. Nothing needs installing.
 \documentclass[conference]{IEEEtran}
 \IEEEoverridecommandlockouts
@@ -49,8 +50,8 @@
 % Work still owed by the greedy half, printed in red so nothing is missed.
 \newcommand{\partnertodo}[1]{\textcolor{red}{\textbf{[Partner: #1]}}}
 
-% Folder holding the divide-and-conquer figures and code (empty here).
-\newcommand{\dcdir}{}
+% Folder holding the divide-and-conquer figures and code.
+\newcommand{\dcdir}{divide_and_conquer/}
 
 \begin{document}
 
@@ -62,17 +63,22 @@
 Gainesville, FL, USA \\
 ilan.danial@ufl.edu}
 \and
-\IEEEauthorblockN{\partnertodo{name}}
+\IEEEauthorblockN{Ryan Rodriguez}
 \IEEEauthorblockA{\textit{Dept.\ of Computer \& Information Science \& Engineering} \\
 \textit{University of Florida}\\
 Gainesville, FL, USA \\
-\partnertodo{email}}
+rrodriguez7@ufl.edu}
 }
 
 \maketitle
 
 \begin{abstract}
-\partnertodo{one or two sentences on the greedy problem and result.}
+A cruise-fare tracker that reads an unofficial, rate-limited search API
+should call it as rarely as it can. We model quote requests with acceptable
+date windows as integer intervals and choose the fewest refresh days that hit
+every window, a minimum point cover that a greedy scan by closing day solves
+optimally in $O(n\log n)$ time; on $383$ real Carnival sailings it needs three
+refreshes.
 Map-search sites cap the number of listings shown per window, so collecting
 every listing in a city means choosing windows that never overflow. We model
 this as a point set on an integer grid and give a divide-and-conquer algorithm
@@ -85,7 +91,8 @@ listings.
 \end{abstract}
 
 \begin{IEEEkeywords}
-\partnertodo{greedy keywords}, divide and conquer, quadtree, web scraping,
+greedy algorithm, interval point cover, web scraping, rate limiting, cruise
+fares, divide and conquer, quadtree,
 formal verification
 \end{IEEEkeywords}
 
@@ -96,8 +103,18 @@ outside the classroom. For each we state the problem, abstract it, give an
 algorithm with a running-time analysis and a proof of correctness, explain the
 algorithm in the problem's own terms, and check the analysis experimentally.
 
-\partnertodo{one paragraph introducing the greedy problem and summarizing
-the result.}
+Both problems come from scraping travel marketplaces under a limit the
+platform imposes. The divide-and-conquer half asks \emph{where} to look when a
+map caps the results per window; the greedy half asks \emph{when} to look
+when an API caps how often one may ask. Section~\ref{sec:greedy} takes a
+cruise-fare tracker that reads Carnival's unofficial, rate-limited search
+endpoint. We propose letting users ask for one fresh quote per sailing within
+a window of days, and choose the fewest refresh batches that serve every
+window. This is the minimum point cover of intervals. A greedy scan by
+closing day is optimal, which we prove with a set of pairwise disjoint
+witness windows, and runs in $O(n\log n)$ time, which experiments confirm up
+to $n=2^{22}$. On $383$ real sailings it needs three refreshes over six
+months.
 
 The second problem comes from web data collection. A map-search service
 shows at most $k$ listings for any map window, so a scraper that needs every
@@ -109,19 +126,22 @@ bounds its depth by $\lceil\log_2 W\rceil$, and verifies the predicted
 $\Theta(n\log(n/k))$ cost experimentally. Every statement in the correctness
 section is also machine-checked in Lean~4 (Appendix~\ref{app:dc-lean}).
 
-\section{Greedy: \partnertodo{section title}}
-\label{sec:greedy}
+\input{greedy/sec_greedy}
 
-\partnertodo{the greedy half: problem, abstraction, algorithm, running time,
-proof of correctness, explanation in the problem domain, experiments. Code
-goes in an appendix after Appendix~\ref{app:dc-lean}; LLM prompts and results
-in an appendix after Appendix~\ref{app:dc-llm}.}
-
-\input{sec_dc}
+\input{divide_and_conquer/sec_dc}
 
 \section{Conclusion}
 
-\partnertodo{one paragraph concluding the greedy half.}
+For the cruise-fare tracker, scanning quote windows by closing day and
+refreshing on the last day of each window not yet served gives the fewest
+refresh batches, and the windows that forced a refresh prove that no schedule
+can do better. The algorithm is a sort followed by a linear scan; measured
+times follow $n\log n$ until the largest inputs, where the cost per window
+rises, consistent with cache misses. The
+result rests on the modeling choices stated in Section~\ref{sec:greedy}:
+equal-cost batches, one observation per window, and windows defined by the
+final-payment deadline and an assumed booking cutoff. It minimizes calls to
+the API, not missed fare changes.
 
 For the capped map search, splitting overflowing windows into quadrants
 collects every listing with a number of requests within a constant factor of
@@ -129,9 +149,9 @@ the $n/k$ lower bound when listings are spread evenly, and never recurses
 deeper than $\lceil\log_2 W\rceil$ levels on a map of $W$ grid units. The
 one assumption, that no single location holds more than $k$ listings, is
 necessary for any strategy that only sees capped search results. Measured
-running times match the $\Theta(n\log(n/k))$ analysis within a few percent
-over three orders of magnitude, and the correctness argument is
-machine-checked.
+running times follow the $\Theta(n\log(n/k))$ analysis over three orders of
+magnitude, request counts match the balanced-case prediction within $3.1\%$,
+and the correctness argument is machine-checked.
 
 \bibliographystyle{IEEEtran}
 \bibliography{refs}
@@ -139,6 +159,7 @@ machine-checked.
 % Code reads better at full page width.
 \onecolumn
 \appendices
-\input{app_dc}
+\input{divide_and_conquer/app_dc}
+\input{greedy/app_greedy}
 
 \end{document}
